@@ -4,10 +4,9 @@ from scipy.stats import poisson
 import matplotlib.pyplot as plt
 
 NUM_CHANNELS = 79
-
 threshold_num = [0.1 , 0.2 , 0.3 , 0.4 , 0.5 , 0.6 , 0.7 , 0.8 , 0.9]
 
-def wmn_hw_3():
+def wmn_hw_4():
     channel = [0]*79  #先全部設為bad channel
     good_channel_count = 0
     temp = 0.1
@@ -116,4 +115,4 @@ def wmn_hw_3():
         plt.close()
 
 # 執行hw3程式碼
-wmn_hw_3()
+wmn_hw_4()
