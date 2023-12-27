@@ -1,78 +1,89 @@
 import random
-import matplotlib.pyplot as plt
-from scipy.stats import poisson
 import numpy as np
-
-NUM_CHANNELS = 79
-threshold_num = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-
-
-def initialize_channels():
-    # Initialize channels
-    channels = [1] * 39 + [0] * 40
-
-    # Set bad channels using Poisson
-    for i in range(39, 79):
-        rnd = poisson.rvs(0.4)
-        if rnd == 0:
-            channels[i] = 1
-
-    return channels
-
-
-def simulate_timestep(channels, device_count):
-    # Simulate device_count devices
-    collisions = [0] * 79
-    for i in range(device_count):
-        ch = random.randint(0, 78)
-        collisions[ch] += 1
-
-    return collisions
+from scipy.stats import poisson
+import matplotlib.pyplot as plt
 
 def wmn_hw3():
-    for device_count in [25, 50, 75]:
+    channel = [0]*79  #先全部設為bad channel
+    good_channel_count = 0
+    channel_ID = []
+    channel_collision_probability = []
+    threshold_num = []
+    bad_channel = []
+    temp = 0.0
+    while(good_channel_count<39):
+        set_good = random.randint(0,78)  #從陣列0-78中隨機
+        if(channel[set_good] == 1):
+            continue
+        else:
+            channel[set_good] == 1   #設為good channel
+            good_channel_count += 1  #good channel count 總共39個
+    for i in range(79):
+        if(channel[i] == 0):
+            set_good = poisson.rvs(mu=16 , size=1) # poisson分布 p=0.4, mu=40*0.4=16
+            if(set_good[0] == 0):
+                channel[i] = 1
+    channel_collision = [0]*79   #記每個channel發生幾次碰撞
+    channel_occupy = [0]*79      #記每個channel連續被占領的hop次數    
+    device_in_channel = [0]*79   #記每個channel有幾個device
+    channel_2 = []
+    
+    for device in range(25,90,25):    #25、50、75
+        threshold = 1
+        temp=0.0
+        channel_ID = []
+        channel_collision_probability = []
+        threshold_num = []
+        bad_channel = []
 
-        channels = initialize_channels()
-        bad_channels = []
+        while(threshold < 10):    #0.1、0.2、0.3、0.4...0.9
+            threshold_hop = threshold*3*1600   #此channel有device超過此hop數即為bad channel
+            channel_collision = [0]*79
+            for i in range(79):
+                channel_2.append(channel[i])
+            for i in range(48000):        #在0~47999 hop時
+                for k in range(79):       #確認每個channel是否現在有device
+                    if(device_in_channel[k] != 0 ):   #此channel有device
+                        if(channel_occupy[k] == threshold_hop and channel_2[k] == 1):   #達到門檻值且原本為good channel
+                            channel_2[k] = 0   #設為bad channel
+                device_in_channel = [0]*79     #新hop中，每個channel都沒有device
+                        
+                for j in range(device):       #第j+1個device                  
+                    jump_to = random.randint(0, 78)  #跳到某隨機channel
+                    if(device_in_channel[jump_to] == 1 ):  #選到的channel已有一部device
+                        channel_collision[jump_to] += 1    #發生碰撞
+                        device_in_channel[jump_to] += 1    #選到的channel上的device+1
+                    elif(device_in_channel[jump_to] > 1 ):    #選到的channel已有超過一部device
+                        continue     
+                    elif(device_in_channel[jump_to] == 0):   #選到的channel沒有device
+                        device_in_channel[jump_to] = 1       #設此channel為有device
+                        channel_occupy[jump_to] += 1          #此channel佔據次數+1
 
-        print(f"{device_count} devices:")
+            temp += 0.1
+            threshold_num.append(temp)
+            bad_channel.append(channel_2.count(0))
 
-        for threshold in threshold_num:
+            threshold += 1
+            channel_2 = []
+            channel_occupy = [0]*79      #記每個channel連續被占領的hop次數    
+            device_in_channel = [0]*79   #記每個channel有沒有device
+        
+        for i in range(79):   #輸出每個channel的總碰撞次數
+            channel_ID.append(i+1)
+            channel_collision_probability.append(channel_collision[i]/48000)
 
-            # Reset collisions for each threshold
-            collision_prob = [0] * NUM_CHANNELS
+        plt.plot(channel_ID , channel_collision_probability)
+        plt.xlabel("Channel ID")
+        plt.ylabel("Channel collision propobility")
+        plt.savefig(str(device)+' device.png', dpi=300, bbox_inches='tight')
+        plt.clf()
+        plt.close()
 
-            # Run simulation
-            for t in range(48000):
-                current_collisions = simulate_timestep(channels, device_count)
-                collision_prob = [x + y for x, y in zip(collision_prob, current_collisions)]
-
-            # Calculate collision probability per channel
-            prob_per_channel = [c / 48000 for c in collision_prob]
-
-            # Identify bad channels
-            bad_channels_count = sum(1 for prob, corruption in zip(prob_per_channel, channels[39:]) if prob > threshold and corruption == 1)
-            bad_channels.append(bad_channels_count)
-
-            print(f"Threshold {threshold}: {bad_channels_count} bad channels")
-
-        # Plot 1 - Collision probability per channel
-        plt.plot(range(1, NUM_CHANNELS + 1), prob_per_channel)  # Adjusted x-axis range
-        plt.title(f"{device_count} devices")
-        plt.xlabel("Channels")
-        plt.ylabel("Collision Probability")
-        plt.savefig(f"{device_count} collision_probability")
-        plt.clf()  # Clear the plot for the next iteration
-
-        # Plot 2 - Bad channels vs threshold
-        plt.plot(threshold_num, bad_channels)
-        plt.title(f"{device_count} devices")
+        plt.plot(threshold_num , bad_channel)
         plt.xlabel("Threshold")
-        plt.ylabel("Bad Channels")
-        plt.savefig(f"{device_count} threshold_bad_channels")
-        plt.clf()  # Clear the plot for the next iteration
-
-    print("Simulation complete!")
-
-# Run the simulation
+        plt.ylabel("Bad channels")
+        plt.savefig(str(device) +' device threshold & bad_channels.png', dpi=300, bbox_inches='tight')
+        plt.clf()
+        plt.close()
+        
 wmn_hw3()

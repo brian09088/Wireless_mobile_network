@@ -4,9 +4,21 @@ from scipy.stats import poisson
 import matplotlib.pyplot as plt
 
 NUM_CHANNELS = 79
+
 threshold_num = [0.1 , 0.2 , 0.3 , 0.4 , 0.5 , 0.6 , 0.7 , 0.8 , 0.9]
 
+# 先決定跳頻序列
+def generate_hopping_patterns():
+    hopping_patterns = []
+    for i in range(NUM_CHANNELS):
+        hopping_pattern = [random.randint(0, 1) for j in range(160)]
+        hopping_patterns.append(hopping_pattern)
+    return hopping_patterns
+
 def wmn_hw_4():
+
+    hopping_patterns = generate_hopping_patterns()    
+
     channel = [0]*79  #先全部設為bad channel
     good_channel_count = 0
     temp = 0.1
@@ -20,7 +32,7 @@ def wmn_hw_4():
             
     for i in range(79):
         if(channel[i] == 0):
-            set_good = poisson.rvs(mu=0.4 , size=1)
+            set_good = poisson.rvs(mu=16 , size=1) #poisson分布 p=0.4, mu=40*0.4=16
             #print(set_good)
             if(set_good[0] == 0):
                 channel[i] = 1
@@ -114,5 +126,5 @@ def wmn_hw_4():
         plt.clf()
         plt.close()
 
-# 執行hw3程式碼
+# 執行hw4程式碼
 wmn_hw_4()
